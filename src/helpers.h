@@ -8,23 +8,11 @@
 #include "Eigen-3.3/Eigen/Core"
 
 
-using namespace std;
-using Eigen::MatrixXd;
-using Eigen::VectorXd;
-
-
-//struct trajectory {
-//  VectorXd s_coef;
-//  VectorXd d_coef;
-//  double T;
-//};
-
-
 // Evaluate a polynomial.
-inline double polyeval(VectorXd coeffs, double x) {
+inline double polyeval(Eigen::VectorXd coeffs, double x) {
   double result = 0.0;
   for (int i = 0; i < coeffs.size(); i++) {
-    result += coeffs[i] * pow(x, i);
+    result += coeffs[i] * std::pow(x, i);
   }
   return result;
 }
@@ -33,10 +21,10 @@ inline double polyeval(VectorXd coeffs, double x) {
 // Fit a polynomial.
 // Adapted from
 // https://github.com/JuliaMath/Polynomials.jl/blob/master/src/Polynomials.jl#L676-L716
-inline VectorXd polyfit(VectorXd xvals, VectorXd yvals, int order) {
+inline Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals, int order) {
   assert(xvals.size() == yvals.size());
   assert(order >= 1 && order <= xvals.size() - 1);
-  MatrixXd A(xvals.size(), order + 1);
+  Eigen::MatrixXd A(xvals.size(), order + 1);
 
   for (int i = 0; i < xvals.size(); i++) {
     A(i, 0) = 1.0;
@@ -55,9 +43,9 @@ inline VectorXd polyfit(VectorXd xvals, VectorXd yvals, int order) {
 
 
 // Differentiate a polynomial.
-inline VectorXd polyder(VectorXd coeffs) {
+inline Eigen::VectorXd polyder(Eigen::VectorXd coeffs) {
   int order = coeffs.size();
-  VectorXd der(max(order - 1, 1));
+  Eigen::VectorXd der(std::max(order - 1, 1));
   der[0] = 0;
   for (int i = 0; i < order - 1; i++) {
     der[i] = coeffs[i + 1] * (i + 1);
@@ -74,12 +62,12 @@ inline double logistic(double x) {
 
   Useful for cost functions.
   */
-  return 2 / ( 1 + exp(-x) ) - 1;
+  return 2 / ( 1 + std::exp(-x) ) - 1;
 }
 
 
 inline double distance_2d(double x1, double y1, double x2, double y2) {
-  return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
+  return std::sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
 
 
@@ -105,7 +93,7 @@ inline double safe_atan2(double y, double x) {
 
   double result;
   if ((absx >= epsilon) & (absy >= epsilon)) {
-    result = atan2(y, x);
+    result = std::atan2(y, x);
   } else if ((absx < epsilon) & (absy >= epsilon)) {
     result = (y / absy) *  pi()/2;
   } else if ((absx >= epsilon) & (absy < epsilon)) {

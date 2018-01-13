@@ -70,7 +70,7 @@ class TrajectoryGenerator {
   /**
   * Find next_x_vals, next_y_vals to keep host in lane.
   */
-  std::vector< std::vector<double> > keep_lane(double t_horizon, int prev_size);
+  std::vector< std::vector<double> > keep_lane(int lane, double t_horizon, int prev_size);
 
 
   /**
@@ -81,20 +81,11 @@ class TrajectoryGenerator {
 
 
   /**
-  * Call appropriate method to generate trajectory for given state.
-  * Uses trajectory to generate waypoints.
+  * Get next_x_vals, next_y_vals for given goal.
   */
-  void realize_state(string state, int prev_size);
-
-  void change_lane_left();
-
-  void change_lane_right();
-
-  void prep_lane_change_left(int target_id);
-
-  void prep_lane_change_right(int target_id);
-
-  void keep_lane();
+  std::vector< std::vector<double> > get_points_for_goal(std::vector<double> goal_state,
+                                                         double t_horizon,
+                                                         int prev_size);
 
  private:
   const Road &road_;
@@ -111,7 +102,7 @@ class TrajectoryGenerator {
 
   std::mt19937 gen_;
 
-  string state_;
+  std::string state_;
   trajectory current_traj_;
 
   /**
@@ -230,6 +221,6 @@ class TrajectoryGenerator {
 //  Penalize high integrated jerk (in s direction).
 //  */
 //  double total_jerk_cost(trajectory traj, std::vector<double> start_state, std::vector<double> end_state, double T) const;
-//};
+};
 
 #endif

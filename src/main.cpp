@@ -11,7 +11,6 @@
 #include "json.hpp"
 #include "spline.h"
 
-#include "behavior_planner.h"
 #include "trajectory_generator.h"
 #include "predictor.h"
 #include "vehicle.h"
@@ -89,18 +88,10 @@ int main() {
   // initialize predictor
   Predictor predictor = Predictor(road);
 
-  // TODO: init behavior planner
-//  BehaviorPlanner planner;
-
   // init trajectory generator
   TrajectoryGenerator traj_gen = TrajectoryGenerator(road, predictor);
 
-  // start in lane 1
-  int lane = 1;
-
-//  h.onMessage([&lane,&road,&predictor,&traj_gen](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-//  uWS::OpCode opCode) {
-  h.onMessage([&lane,&road,&predictor,&traj_gen](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  h.onMessage([&road,&predictor,&traj_gen](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
   uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -141,19 +132,15 @@ int main() {
           vector< vector<double> > sensor_fusion = j[1]["sensor_fusion"];
 
           // update targets
-          cout << "main - updating targets" << endl;
           predictor.update_targets(sensor_fusion);
-          cout << "main - targets updated" << endl;
 
-          // update host
+          // update host - TODO: poor class isolation/definition - wouldn't host.update() be cleaner?
           vector<double> host_frenet_state;
           vector<double> host_xy;
           int prev_size;
           if (predictor.host_init_) {
             prev_size = previous_path_x.size();
-            cout << "main - calling get_host_state" << endl;
             host_frenet_state = traj_gen.get_host_state(prev_size);
-            cout << "main - calling get_host_xy" << endl;
             host_xy = traj_gen.get_host_xy(prev_size);
           } else {
             prev_size = 50;
@@ -161,40 +148,15 @@ int main() {
             host_xy = {car_x, car_y};
           }
 
-          cout << "main - calling update_host" << endl;
           predictor.update_host(host_frenet_state, host_xy[0], host_xy[1], car_yaw);
+          predictor.update_lane_selector();
           predictor.host_.print();
 
-          cout << "main - previous_path_x.size() = " << previous_path_x.size() << endl;
-
-          // TODO: update behavior planner
-
-          // TODO: update trajectory generator
-
-          // test constant speed path
-//          double T = 5;
-//          double end_s = host_frenet_state[0] + SPEED_LIMIT * T;
-//          double end_d = 6;
-//          vector<double> end_state = {end_s, SPEED_LIMIT, 0, end_d, 0, 0};
-//
-//          int in_front = predictor.in_front(1);
-//          if (in_front > -1) {
-//            vector<double> front_0 = predictor.targets_.at(in_front).state();
-//            double delta_s = road.s_diff(front_0[0], predictor.host_.s_);
-//            double delta_s_dot = front_0[1] - predictor.host_.s_dot_;
-//            if ((delta_s < 50) & (delta_s_dot <=0 )) {
-//              vector<double> front_T = predictor.targets_.at(in_front).state_at(T);
-//              end_state = {front_T[0] - 20, front_T[1], front_T[2], end_d, 0, 0};
-//            }
-//          }
-//
-//          vector< vector<double> > next_points = traj_gen.get_points(end_state, T, prev_size);
-          cout << "main - calling keep_lane" << endl;
-          vector< vector<double> > next_points = traj_gen.keep_lane(3, prev_size);
+          vector< vector<double> > next_points = traj_gen.keep_lane(predictor.desired_lane_, 4, prev_size);
           vector<double> next_x_vals = next_points[0];
           vector<double> next_y_vals = next_points[1];
 
-          cout << "main - next_x_vals[0], next_y_vals[0] = " << next_x_vals[0] << ", " << next_y_vals[0] << endl;
+//          cout << "main: next x, y = " << next_x_vals[0] << ", " << next_y_vals[0] << endl;
 
           // assemble message
           json msgJson;

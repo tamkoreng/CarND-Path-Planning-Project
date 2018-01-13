@@ -4,10 +4,7 @@
 #include <iostream>
 
 
-using namespace std;
-
-
-Vehicle::Vehicle(vector<double> telemetry_comp) {
+Vehicle::Vehicle(std::vector<double> telemetry_comp) {
   x_ = telemetry_comp[0];
   y_ = telemetry_comp[1];
   yaw_ = telemetry_comp[2];
@@ -25,15 +22,15 @@ Vehicle::Vehicle(vector<double> telemetry_comp) {
 Vehicle::~Vehicle() {}
 
 
-vector<double> Vehicle::state() const {
-  return vector<double> {s_, s_dot_, s_ddot_, d_, d_dot_, d_ddot_};
+std::vector<double> Vehicle::state() const {
+  return std::vector<double> {s_, s_dot_, s_ddot_, d_, d_dot_, d_ddot_};
 }
 
 
-vector<double> Vehicle::state_at(double t) const {
-  vector<double> state(6);
-  state[0] = max(s_ + ( s_dot_ * t ) + ( s_ddot_ * pow(t, 2) / 2 ), s_ ); // assume vehicle moves forward only
-  state[1] = max(s_dot_ + s_ddot_ * t, 0.0); // assume vehicle only moves forwards
+std::vector<double> Vehicle::state_at(double t) const {
+  std::vector<double> state(6);
+  state[0] = std::max(s_ + ( s_dot_ * t ) + ( s_ddot_ * pow(t, 2) / 2 ), s_ ); // assume vehicle moves forward only
+  state[1] = std::max(s_dot_ + s_ddot_ * t, 0.0); // assume vehicle only moves forwards
   state[2] = s_ddot_;
   state[3] = d_ + ( d_dot_ * t ) + ( d_ddot_ * pow(t, 2) / 2 );
   state[4] = d_dot_ + d_ddot_ * t;
@@ -43,7 +40,7 @@ vector<double> Vehicle::state_at(double t) const {
 }
 
 
-void Vehicle::update(vector<double> telemetry_comp, double dt)
+void Vehicle::update(std::vector<double> telemetry_comp, double dt)
 {
   // store previous velocity
   double s_dot_prev = s_dot_;
@@ -68,7 +65,7 @@ void Vehicle::update(vector<double> telemetry_comp, double dt)
 }
 
 
-void Vehicle::update_with_accel(vector<double> telemetry_comp, double s_ddot, double d_ddot) {
+void Vehicle::update_with_accel(std::vector<double> telemetry_comp, double s_ddot, double d_ddot) {
   x_ = telemetry_comp[0];
   y_ = telemetry_comp[1];
   yaw_ = telemetry_comp[2];
@@ -83,13 +80,13 @@ void Vehicle::update_with_accel(vector<double> telemetry_comp, double s_ddot, do
 
 
 void Vehicle::print() {
-  vector<double> state = Vehicle::state();
-  cout << "s, s_dot, s_ddot, d, d_dot, d_ddot = ";
+  std::vector<double> state = Vehicle::state();
+  std::cout << "s, s_dot, s_ddot, d, d_dot, d_ddot = ";
   for (int i = 0; i < state.size(); i++) {
-    cout << state[i];
+    std::cout << state[i];
     if (i < (state.size() - 1)) {
-      cout << ", ";
+      std::cout << ", ";
     }
   }
-  cout << endl;
+  std::cout << std::endl;
 }

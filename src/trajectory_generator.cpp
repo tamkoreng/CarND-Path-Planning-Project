@@ -75,6 +75,10 @@ TrajectoryGenerator::~TrajectoryGenerator() {}
 //  return trajectories[min_idx];
 //}
 
+// TODO: may need to bring back PTG to prevent exceeding speed limit
+// TODO: not sure what to do about bogus out-of-lane violation
+// TODO: need to figure out why d shifts over a lane on lap completion
+// TODO: need to fix instability - abrupt change in direction and speed -> inf
 
 vector< vector<double> > TrajectoryGenerator::get_points(trajectory traj, int prev_size) {
   double t_epsilon = 0.001;
@@ -141,22 +145,6 @@ vector< vector<double> > TrajectoryGenerator::get_points(trajectory traj, int pr
     start_state = predictor_.host_.state();
   }
 
-//  // use JMT to generate new points
-//  vector<double> s_start = vector<double>(start_state.begin(), start_state.begin() + 3);
-//  vector<double> d_start = vector<double>(start_state.begin() + 3, start_state.end());
-//  vector<double> s_end = vector<double>(end_state.begin(), end_state.begin() + 3);
-//  vector<double> d_end = vector<double>(end_state.begin() + 3, end_state.end());
-//  cout << "s_start[1], s_end[1] = " << s_start[1] << ", " << s_end[1] << endl;
-//  VectorXd s_coef = TrajectoryGenerator::JMT(s_start, s_end, T);
-//  VectorXd d_coef = TrajectoryGenerator::JMT(d_start, d_end, T);
-//  trajectory traj = {s_coef, d_coef, T};
-
-//  cout << "s_coef = ";
-//  for (int i = 0; i < s_coef.size(); i++) {
-//    cout << s_coef[i] << ", ";
-//  }
-//  cout << endl;
-
   // get polynomials for new trajectory derivatives
   VectorXd s_dot_poly = polyder(traj.s_coef);
   VectorXd s_ddot_poly = polyder(s_dot_poly);
@@ -220,21 +208,12 @@ vector< vector<double> > TrajectoryGenerator::get_points(trajectory traj, int pr
   prev_pts_x_ = new_pts_x;
   prev_pts_y_ = new_pts_y;
 
-//  cout << "get_points: exited" << endl;
   return {new_pts_x, new_pts_y};
 }
 
 
 vector<double> TrajectoryGenerator::get_host_state(int prev_size) {
   int idx = TRAJECTORY_N_POINTS - prev_size - 1;
-//  cout << "get_host_state - idx = " << idx << endl;
-//  cout << "get_host_state - prev_pts_s_.size() = " << prev_pts_s_.size() << endl;
-//  cout << "get_host_state - prev_pts_s_[0] = " << prev_pts_s_[0] << endl;
-//  cout << "get_host_state - prev_pts_s_dot_[0] = " << prev_pts_s_dot_[0] << endl;
-//  cout << "get_host_state - prev_pts_s_ddot_[0] = " << prev_pts_s_ddot_[0] << endl;
-//  cout << "get_host_state - prev_pts_d_[0] = " << prev_pts_d_[0] << endl;
-//  cout << "get_host_state - prev_pts_d_dot_[0] = " << prev_pts_d_dot_[0] << endl;
-//  cout << "get_host_state - prev_pts_d_ddot_[0] = " << prev_pts_d_ddot_[0] << endl;
   return {prev_pts_s_[idx],
           prev_pts_s_dot_[idx],
           prev_pts_s_ddot_[idx],
@@ -251,27 +230,27 @@ vector<double> TrajectoryGenerator::get_host_xy(int prev_size) {
 
 
 vector<double> TrajectoryGenerator::trapezoidal_accel(double t_horizon) {
-  cout << "trapezoidal_accel: entered" << endl;
   // unpack current host state
   double s_i = predictor_.host_.s_;
   double v_i = predictor_.host_.s_dot_;
   double a_i = predictor_.host_.s_ddot_;
 
+  double v_max = std::sqrt( std::pow( SPEED_LIMIT, 2 ) - std::pow( predictor_.host_.d_dot_, 2 ) );
+  double a_max = std::sqrt( std::pow( MAX_ACCEL, 2 ) - std::pow( predictor_.host_.d_ddot_, 2 ) );
+  // TODO: what about lateral component of jerk?
+
   // calculate max jerk, trapezoidal acceleration trajectory
 
   // desired velocity change
-  double dv = SPEED_LIMIT - v_i;
-  cout << "dv = " << dv << endl;
+  double dv = v_max - v_i;
 
   // a_i to 0
   double dt_ai0 = a_i / MAX_JERK;
   double dv_ai0 = a_i * dt_ai0 / 2;
-  cout << "a_i to 0 - dv, dt = " << dv_ai0 << ", " << dt_ai0 << endl;
 
   // a_i to a_max, a_max to a_i
-  double dt_aimax = (MAX_ACCEL - a_i) / MAX_JERK;
-  double dv_aimax = (MAX_ACCEL + a_i) * dt_aimax / 2;
-  cout << "a_i to max - dv, dt = " << dv_aimax << ", " << dt_aimax << endl;
+  double dt_aimax = (a_max - a_i) / MAX_JERK;
+  double dv_aimax = (a_max + a_i) * dt_aimax / 2;
 
   // define state at t_horizon
   double s_f = 0;
@@ -280,7 +259,6 @@ vector<double> TrajectoryGenerator::trapezoidal_accel(double t_horizon) {
 
   if (dv < dv_ai0) {
     // decreasing acceleration
-    cout << "trapezoidal_accel: decreasing acceleration" << endl;
 
     // segment 1 - decreasing acceleration
     double dt = dt_ai0;
@@ -293,22 +271,18 @@ vector<double> TrajectoryGenerator::trapezoidal_accel(double t_horizon) {
           + v_i * dt
           + 0.5 * a_i * pow(dt, 2)
           - MAX_JERK * pow(dt, 3) / 6;
-    cout << "dt, s_f, v_f, a_f = " << dt << ", " << s_f << ", " << v_f << ", " << a_f << endl;
 
     if (t_horizon > dt_ai0) {
       // segment 2 - constant velocity
       dt = t_horizon - dt_ai0;
       a_f = 0;
-      v_f = SPEED_LIMIT;
+      v_f = v_max;
       s_f += v_f * dt;
-      cout << "dt, s_f, v_f, a_f = " << dt << ", " << s_f << ", " << v_f << ", " << a_f << endl;
     }
 
   } else if (dv >= (dv_ai0 + 2 * dv_aimax)) {
     // trapezoidal acceleration
-    cout << "trapezoidal_accel: trap accel segment 1" << endl;
-    double dt_amax = (1 / MAX_ACCEL) * (dv - dv_ai0 - 2 * dv_aimax);
-    cout << "dt_amax = " << dt_amax << endl;
+    double dt_amax = (1 / a_max) * (dv - dv_ai0 - 2 * dv_aimax);
 
     // segment 1 - increasing acceleration
     double dt = min(t_horizon, dt_aimax);
@@ -321,20 +295,16 @@ vector<double> TrajectoryGenerator::trapezoidal_accel(double t_horizon) {
           + v_i * dt
           + 0.5 * a_i * pow(dt, 2)
           + MAX_JERK * pow(dt, 3) / 6;
-    cout << "dt, s_f, v_f, a_f = " << dt << ", " << s_f << ", " << v_f << ", " << a_f << endl;
     if (t_horizon > dt_aimax) {
       // segment 2 - constant acceleration
-      cout << "trapezoidal_accel: trap accel segment 2" << endl;
       dt = min(t_horizon - dt_aimax, dt_amax);
       s_f += v_f * dt
              + 0.5 * a_f * pow(dt, 2);
       v_f += a_f * dt;
-      cout << "dt, s_f, v_f, a_f = " << dt << ", " << s_f << ", " << v_f << ", " << a_f << endl;
     }
 
     if (t_horizon > (dt_aimax + dt_amax)) {
       // segment 3 - decreasing acceleration
-      cout << "trapezoidal_accel: trap accel segment 3" << endl;
       dt = min(t_horizon - (dt_aimax + dt_amax), dt_aimax + dt_ai0);
       s_f += v_f * dt
              + 0.5 * a_f * pow(dt, 2)
@@ -342,25 +312,20 @@ vector<double> TrajectoryGenerator::trapezoidal_accel(double t_horizon) {
       v_f += a_f * dt
              - 0.5 * MAX_JERK * pow(dt, 2);
       a_f += -MAX_JERK * dt;
-      cout << "dt, s_f, v_f, a_f = " << dt << ", " << s_f << ", " << v_f << ", " << a_f << endl;
     }
 
     if (t_horizon > (2 * dt_aimax + dt_amax + dt_ai0)) {
       // segment 4 - constant velocity
-      cout << "trapezoidal accel: trap accel segment 4" << endl;
       dt = t_horizon - (2 * dt_aimax + dt_amax + dt_ai0);
       a_f = 0;
-      v_f = SPEED_LIMIT;
+      v_f = v_max;
       s_f += v_f * dt;
-      cout << "dt, s_f, v_f, a_f = " << dt << ", " << s_f << ", " << v_f << ", " << a_f << endl;
     }
 
   } else {
     // triangular acceleration
-    cout << "trapezoidal_accel: triangle accel segment 1" << endl;
     double a_pk = sqrt( MAX_JERK * (dv - dv_ai0) + pow(a_i, 2) );
     double dt_aipk = (a_pk - a_i) / MAX_JERK;
-    cout << "dt_aipk, a_pk = " << dt_aipk << ", " << a_pk << endl;
 
     // segment 1 - increasing acceleration
     double dt = min(t_horizon, dt_aipk);
@@ -373,10 +338,8 @@ vector<double> TrajectoryGenerator::trapezoidal_accel(double t_horizon) {
           + v_i * dt
           + 0.5 * a_i * pow(dt, 2)
           + MAX_JERK * pow(dt, 3) / 6;
-    cout << "dt, s_f, v_f, a_f = " << dt << ", " << s_f << ", " << v_f << ", " << a_f << endl;
     if (t_horizon > dt_aipk) {
       // segment 2 - decreasing acceleration
-      cout << "trapezoidal_accel: triangle accel segment 2" << endl;
       dt = min(t_horizon - dt_aipk, dt_aipk + dt_ai0);
       s_f += v_f * dt
              + 0.5 * a_f * pow(dt, 2)
@@ -384,28 +347,23 @@ vector<double> TrajectoryGenerator::trapezoidal_accel(double t_horizon) {
       v_f += a_f * dt
              - 0.5 * MAX_JERK * pow(dt, 2);
       a_f += -MAX_JERK * dt;
-      cout << "dt, s_f, v_f, a_f = " << dt << ", " << s_f << ", " << v_f << ", " << a_f << endl;
     }
 
     if (t_horizon > (2 * dt_aipk + dt_ai0)) {
       // segment 3 - constant velocity
-      cout << "trapezoidal_accel: triangle accel segment 3" << endl;
       dt = t_horizon - (2 * dt_aipk + dt_ai0);
       a_f = 0;
-      v_f = SPEED_LIMIT;
+      v_f = v_max;
       s_f += v_f * dt;
-      cout << "dt, s_f, v_f, a_f = " << dt << ", " << s_f << ", " << v_f << ", " << a_f << endl;
     }
   }
 
-//  cout << "s_f, v_f, a_f = " << s_f << ", " << v_f << ", " << a_f << endl;
   s_f = road_.s_norm(s_f);
   return {s_f, v_f, a_f};
 }
 
 
-vector< vector<double> > TrajectoryGenerator::keep_lane(double t_horizon, int prev_size) {
-  cout << "keep_lane: entered" << endl;
+vector< vector<double> > TrajectoryGenerator::keep_lane(int lane, double t_horizon, int prev_size) {
   // check for lead vehicle
   int in_front_id = predictor_.in_front(road_.get_lane(predictor_.host_.d_));
 
@@ -414,8 +372,6 @@ vector< vector<double> > TrajectoryGenerator::keep_lane(double t_horizon, int pr
   double sh_f = host_end[0];
   double vh_f = host_end[1];
   double ah_f = host_end[2];
-//  cout << "sh_f, vh_f, ah_f = " << sh_f << ", " << vh_f << ", " << ah_f << endl;
-  cout << "in_front_id = " << in_front_id << endl;
 
   if (in_front_id > -1) {
     // lead vehicle present
@@ -428,43 +384,39 @@ vector< vector<double> > TrajectoryGenerator::keep_lane(double t_horizon, int pr
     double v1_f = lead_end[1];
     double a1_f = lead_end[2];
 
-    cout << "s1_i, v1_i, a1_i = " << s1_i << ", " << v1_i << ", " << a1_i << endl;
-    cout << "s1_f, v1_f, a1_f = " << s1_f << ", " << v1_f << ", " << a1_f << endl;
-
     double range = road_.s_diff(s1_f, sh_f);
 
     if (range <= (FOLLOWER_T_GAP * v1_f + FOLLOWER_R0)) {
       // TODO: need to watch wrap around
       sh_f = road_.s_norm(s1_f - (FOLLOWER_T_GAP * v1_f + FOLLOWER_R0));
-//      if (sh_f < predictor_.host_.s_) {
-//        sh_f = road_.s_norm(s1_f - FOLLOWER_R0);
-//      }
       vh_f = min(v1_f, SPEED_LIMIT);
-//      ah_f = min(a1_f, MAX_ACCEL);
       ah_f = 0;
 
       double r_now = road_.s_diff(s1_i, predictor_.host_.s_);
       double r_dot_now = v1_i - predictor_.host_.s_dot_;
-      cout << "TTC = " << -r_now / r_dot_now << endl;
     }
   }
 
-  vector<double> goal_state = {sh_f, vh_f, ah_f, predictor_.host_.d_, 0.0, 0.0};
+  double dh_f = (lane + 0.5) * predictor_.road_.lane_width_;
+  vector<double> goal_state = {sh_f, vh_f, ah_f, dh_f, 0.0, 0.0};
 
-  cout << "goal_state = ";
+//  cout << "goal_state = ";
   for (int i = 0; i < goal_state.size(); i++) {
-    cout << goal_state[i] << ", ";
+//    cout << goal_state[i] << ", ";
   }
-  cout << endl;
+//  cout << endl;
 
-//  return TrajectoryGenerator::get_points(goal_state, t_horizon, prev_size);
-  // use JMT to generate new points
+  return TrajectoryGenerator::get_points_for_goal(goal_state, t_horizon, prev_size);
+}
+
+
+vector< vector<double> > TrajectoryGenerator::get_points_for_goal(vector<double> goal_state,
+                                                                  double t_horizon, int prev_size) {
   vector<double> start_state = predictor_.host_.state();
   vector<double> s_start = vector<double>(start_state.begin(), start_state.begin() + 3);
   vector<double> d_start = vector<double>(start_state.begin() + 3, start_state.end());
   vector<double> s_end = vector<double>(goal_state.begin(), goal_state.begin() + 3);
   vector<double> d_end = vector<double>(goal_state.begin() + 3, goal_state.end());
-  cout << "s_start[1], s_end[1] = " << s_start[1] << ", " << s_end[1] << endl;
 
   // handle start s > end s (loop around)
   if (s_start[0] > s_end[0]) {

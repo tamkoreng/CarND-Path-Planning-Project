@@ -6,11 +6,9 @@
 #include "constants.h"
 
 
-using namespace std;
-
 Road::Road(double speed_limit, double lane_width, int n_lanes, double max_s,
-           vector<double>maps_x, vector<double>maps_y, vector<double>maps_s,
-           vector<double>maps_dx, vector<double>maps_dy) {
+           std::vector<double>maps_x, std::vector<double>maps_y, std::vector<double>maps_s,
+           std::vector<double>maps_dx, std::vector<double>maps_dy) {
   speed_limit_ = speed_limit;
   lane_width_ = lane_width;
   n_lanes_ = n_lanes;
@@ -20,6 +18,13 @@ Road::Road(double speed_limit, double lane_width, int n_lanes, double max_s,
   maps_s_ = maps_s;
   maps_dx_ = maps_dx;
   maps_dy_ = maps_dy;
+
+  // copy first point to end to close loop
+  maps_x_.push_back(maps_x[0]);
+  maps_y_.push_back(maps_y[0]);
+  maps_s_.push_back(max_s);
+  maps_dx_.push_back(maps_dx[0]);
+  maps_dy_.push_back(maps_dy[0]);
 
   // create splines for get_xy
   s_x_spline_.set_points(maps_s_, maps_x_);
@@ -52,15 +57,13 @@ int Road::closest_waypoint(double x, double y) const {
 
 int Road::next_waypoint(double x, double y, double theta) const {
   int closest_wp = Road::closest_waypoint(x, y);
-//  cout << "closest_wp = " << closest_wp << endl;
 
   double map_x = maps_x_[closest_wp];
   double map_y = maps_y_[closest_wp];
 
-//  cout << "map_x, map_y = " << map_x << ", " << map_y << endl;
   double heading = safe_atan2( ( map_y - y ), ( map_x - x ) );
 
-  double angle = fabs(theta - heading); // was abs
+  double angle = std::fabs(theta - heading);
 
   if (angle > pi()/4) {
     closest_wp++;
@@ -69,11 +72,13 @@ int Road::next_waypoint(double x, double y, double theta) const {
     }
   }
 
+//  std::cout << "next_waypoint: closest_wp, map_x, map_y = " << closest_wp << ", " << map_x << ", " << map_y << std::endl;
+
   return closest_wp;
 }
 
 
-vector<double> Road::get_frenet(double x, double y, double theta) const {
+std::vector<double> Road::get_frenet(double x, double y, double theta) const {
   int next_wp = Road::next_waypoint(x,y, theta);
 
   int prev_wp;
@@ -116,32 +121,7 @@ vector<double> Road::get_frenet(double x, double y, double theta) const {
 }
 
 
-//vector<double> Road::get_xy(double s, double d) const {
-//  int prev_wp = -1;
-//
-//  while(s > maps_s_[prev_wp + 1] && (prev_wp < (int)(maps_s_.size() - 1) )) {
-//    prev_wp++;
-//  }
-//
-//  int wp2 = (prev_wp + 1) % maps_x_.size();
-//
-//  double heading = safe_atan2( ( maps_y_[wp2] - maps_y_[prev_wp] ), ( maps_x_[wp2] - maps_x_[prev_wp] ) );
-//
-//  // the x,y,s along the segment
-//  double seg_s = s - maps_s_[prev_wp];
-//  double seg_x = maps_x_[prev_wp] + seg_s * cos(heading);
-//  double seg_y = maps_y_[prev_wp] + seg_s * sin(heading);
-//
-//  double perp_heading = heading - pi()/2;
-//
-//  double x = seg_x + d * cos(perp_heading);
-//  double y = seg_y + d * sin(perp_heading);
-//
-//  return {x, y};
-//}
-
-
-vector<double> Road::get_xy(double s, double d) const {
+std::vector<double> Road::get_xy(double s, double d) const {
   double x0 = s_x_spline_(s);
   double y0 = s_y_spline_(s);
   double dx = s_dx_spline_(s);
@@ -149,11 +129,12 @@ vector<double> Road::get_xy(double s, double d) const {
   double x = x0 + dx * d;
   double y = y0 + dy * d;
 
+
   return {x, y};
 }
 
 
-vector<double> Road::get_frenet_velocity(double x, double y, double vx, double vy) const {
+std::vector<double> Road::get_frenet_velocity(double x, double y, double vx, double vy) const {
   double theta_veh = safe_atan2(vy, vx);
 //  cout << "theta_veh = " << theta_veh << endl;
   int next_wp = Road::next_waypoint(x,y, theta_veh);
@@ -171,16 +152,12 @@ vector<double> Road::get_frenet_velocity(double x, double y, double vx, double v
   double theta_road = safe_atan2(dy, dx);
 
   double dtheta = theta_veh - theta_road;
-  // TODO: double check - might be wrong
-//  double s_dot = -vy * sin(dtheta) + vx * cos(dtheta);
-//  double d_dot = vy * cos(dtheta) + vx * sin(dtheta);
 
   double v = sqrt(pow(vx, 2) + pow(vy, 2));
   double d_dot = v * sin(dtheta);
   double s_dot = sqrt(pow(v, 2) - pow(d_dot, 2));
 
-
-  cout << "vx, vy, dtheta, s_dot, d_dot = " << vx << ", " << vy << ", " << dtheta << ", " << s_dot << ", " << d_dot << endl;
+//  std::cout << "vx, vy, dtheta, s_dot, d_dot = " << vx << ", " << vy << ", " << dtheta << ", " << s_dot << ", " << d_dot << std::endl;
 
   return {s_dot, d_dot};
 }
