@@ -6,6 +6,8 @@
 #include <map>
 #include <string>
 
+#include "Eigen-3.3/Eigen/Core"
+
 #include "vehicle.h"
 #include "road.h"
 
@@ -38,13 +40,26 @@ class Predictor {
   // KL = keep lane
   // LCL = lane change left
   // LCR = lane change right
+  // PLCL = prepare lane change left
+  // PLCR = prepare lane change right
   std::string lane_state_;
+
+  // previous state
+  std::string prev_lane_state_;
+  int prev_optimal_lane_;
+  int filtered_optimal_lane_;
 
   // desired lane output by state machine
   int desired_lane_;
 
   // true is lane change is no longer in progress
   bool lane_change_complete_;
+
+  // time stamp of last entry into keep lane state
+  systime t_keep_lane_;
+
+  // time stamp of last optimal lane toggle
+  systime t_optimal_lane_;
 
   // list of target vehicles
   std::map<int, Vehicle> targets_;
@@ -83,9 +98,16 @@ class Predictor {
   int in_front(int lane) const; // at current time
 
   /**
+  * Get id of first vehicle in host path (regardless of lane).
+  */
+  int in_path(double t) const;
+  int in_path() const; // at current time
+
+  /**
   * Get id of first vehicle behind host in specified lane.
   * Return -1 if no vehicle present.
   */
+  int behind(int lane, double t) const;
   int behind(int lane) const; // at current time
 
   /**
@@ -112,7 +134,25 @@ class Predictor {
   * Select desired lane.
   * Update lane selection state machine.
   */
-  void update_lane_selector();
+  void update_lane_selector(double t_horizon, bool abort_lane_change);
+
+  /**
+  * Check front and rear buffer in specified lane.
+  */
+  bool is_safe(int lane, double t);
+  bool is_safe(int lane); // at current time
+
+  /**
+  * Find speed of target in adjacent lane (within either front or rear buffer).
+  */
+  double lane_speed(int lane, double t);
+
+  /**
+  * Evaluate predicted target s and d coordinates at specified time steps.
+  * Output[0] = S(t) MatrixXd (each target is a column, each row is a time step)
+  * Output[1] = D(t) MatrixXd (each target is a column, each row is a time step)
+  */
+  std::vector< Eigen::MatrixXd > target_predictions(double T, int steps);
 
  private:
   /**

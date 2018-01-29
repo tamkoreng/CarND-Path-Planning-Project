@@ -22,7 +22,7 @@ Road::Road(double speed_limit, double lane_width, int n_lanes, double max_s,
   // copy first point to end to close loop
   maps_x_.push_back(maps_x[0]);
   maps_y_.push_back(maps_y[0]);
-  maps_s_.push_back(max_s);
+  maps_s_.push_back(max_s_);
   maps_dx_.push_back(maps_dx[0]);
   maps_dy_.push_back(maps_dy[0]);
 
@@ -164,7 +164,7 @@ std::vector<double> Road::get_frenet_velocity(double x, double y, double vx, dou
 
 
 int Road::get_lane(double d) const {
-  return floor(d / LANE_WIDTH);
+  return floor(d / lane_width_);
 }
 
 

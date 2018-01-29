@@ -80,7 +80,7 @@ int main() {
   }
 
   // create road object using map waypoints
-  Road road = Road(SPEED_LIMIT, LANE_WIDTH, N_LANES, MAX_S,
+  Road road = Road(COMMON_SPEED_LIMIT, COMMON_LANE_WIDTH, COMMON_N_LANES, COMMON_MAX_S,
                    map_waypoints_x, map_waypoints_y,
                    map_waypoints_s, map_waypoints_dx,
                    map_waypoints_dy);
@@ -121,6 +121,9 @@ int main() {
           car_yaw = deg2rad(car_yaw);
           car_speed = car_speed / 2.237; // convert to m/s
 
+//          cout << "telemetry: x, y, s, d, yaw, speed = " << car_x << ", " << car_y << ", "
+//               << car_s << ", " << car_d << ", " << car_yaw << ", " << car_speed << endl;
+
           // Previous path data given to the Planner
           auto previous_path_x = j[1]["previous_path_x"];
           auto previous_path_y = j[1]["previous_path_y"];
@@ -129,6 +132,7 @@ int main() {
           double end_path_d = j[1]["end_path_d"];
 
           // Sensor Fusion Data, a list of all other cars on the same side of the road.
+          // Always contains 12 vehicles with ids 0 to 11.
           vector< vector<double> > sensor_fusion = j[1]["sensor_fusion"];
 
           // update targets
@@ -149,14 +153,58 @@ int main() {
           }
 
           predictor.update_host(host_frenet_state, host_xy[0], host_xy[1], car_yaw);
-          predictor.update_lane_selector();
-          predictor.host_.print();
+//          predictor.update_lane_selector(4.0);
+//          predictor.host_.print();
 
-          vector< vector<double> > next_points = traj_gen.keep_lane(predictor.desired_lane_, 4, prev_size);
+//          vector< vector<double> > next_points = traj_gen.keep_lane(predictor.desired_lane_, 4.0, prev_size);
+          vector< vector<double> > next_points = traj_gen.keep_lane(3.0, prev_size);
           vector<double> next_x_vals = next_points[0];
           vector<double> next_y_vals = next_points[1];
 
-//          cout << "main: next x, y = " << next_x_vals[0] << ", " << next_y_vals[0] << endl;
+          double max_delta_dist = 0;
+          for (int i = 0; i < next_x_vals.size() - 1; i++) {
+            double delta_dist = distance_2d(next_x_vals[i], next_y_vals[i], next_x_vals[i+1], next_y_vals[i+1]);
+            if (delta_dist > max_delta_dist) {
+              max_delta_dist = delta_dist;
+            }
+          }
+//          cout << "main: max_speed = " << 2.237 * max_delta_dist / TRAJECTORY_TIME_STEP << endl;
+
+//          cout << "main: next x[0], y[0], x[end], y[end] = " << next_x_vals[0] << ", " << next_y_vals[0] << ", "
+//               << next_x_vals[next_x_vals.size() - 1] << ", " << next_y_vals[next_y_vals.size() - 1] << endl;
+//          cout << "speed, yaw, prev_size = " << car_speed << ", " << car_yaw << ", " << prev_size << endl;
+//
+//          cout << "telem    s, d, x, y: " << car_s << ", " << car_d << ", " << car_x << ", " << car_y << endl;
+//          cout << "traj_gen s, d, x, y: " << host_frenet_state[0] << ", " << host_frenet_state[3] << ", " << host_xy[0] << ", " << host_xy[1] << endl;
+//
+//          cout << "dx: ";
+//          if (traj_gen.prev_pts_s_.size() > 0) {
+//            for (int i = 0; i < 5; i++) {
+//              double dx = traj_gen.prev_pts_x_[i+1] - traj_gen.prev_pts_x_[i];
+//              cout << dx << ", ";
+//            }
+//            cout << endl;
+//            cout << "dy: ";
+//            for (int i = 0; i < 5; i++) {
+//              double dy = traj_gen.prev_pts_y_[i+1] - traj_gen.prev_pts_y_[i];
+//              cout << dy << ", ";
+//            }
+//            cout << endl;
+//          }
+//          cout << "ds: ";
+//          if (traj_gen.prev_pts_s_.size() > 0) {
+//            for (int i = 0; i < 5; i++) {
+//              double ds = traj_gen.prev_pts_s_[i+1] - traj_gen.prev_pts_s_[i];
+//              cout << ds << ", ";
+//            }
+//            cout << endl;
+//            cout << "dd: ";
+//            for (int i = 0; i < 5; i++) {
+//              double dd = traj_gen.prev_pts_d_[i+1] - traj_gen.prev_pts_d_[i];
+//              cout << dd << ", ";
+//            }
+//            cout << endl;
+//          }
 
           // assemble message
           json msgJson;

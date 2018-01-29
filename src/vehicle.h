@@ -19,6 +19,8 @@ class Vehicle {
   double d_dot_;
   double d_ddot_;
 
+  double speed_limit_;
+
   /**
   * Constructor
   * Initialize with telemetry {x, y, yaw, s, d, s_dot, d_dot}.
