@@ -15,6 +15,7 @@ class Vehicle {
   double s_;
   double s_dot_;
   double s_ddot_;
+  double s_jerk_;
   double d_;
   double d_dot_;
   double d_ddot_;

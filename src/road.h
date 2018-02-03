@@ -74,6 +74,11 @@ public:
   * Compensate s coordinate for loop back.
   */
   double s_norm(double s_in) const;
+
+  /**
+  * Find speed in Frenet frame.
+  */
+  double s_dot(double v, double s, double d) const;
 };
 
 

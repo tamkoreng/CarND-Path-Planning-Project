@@ -56,6 +56,7 @@ class Trajectory {
   double max_speed_;
   double max_accel_;
   double max_jerk_;
+  double min_s_dot_;
 
   double nearest_distance_;
   double nearest_s_;
@@ -75,6 +76,7 @@ class Trajectory {
   double stays_on_road_cost_;
   double exceeds_speed_limit_cost_;
   double lateral_offset_cost_;
+  double backwards_cost_;
 
   double weighted_cost_;
 
@@ -202,6 +204,11 @@ class Trajectory {
   * Penalize driving outside the lane.
   */
   double lateral_offset_cost(Eigen::VectorXd d, int T_idx) const;
+
+  /**
+  * Penalize driving backwards.
+  */
+  double backwards_cost() const;
 };
 
 #endif

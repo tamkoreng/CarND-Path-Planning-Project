@@ -1,6 +1,7 @@
 #include "road.h"
 
 #include <iostream>
+#include <math.h>
 
 #include "helpers.h"
 #include "constants.h"
@@ -191,4 +192,13 @@ double Road::s_norm(double s_in) const {
     s_in += max_s_;
   }
   return fmod(s_in, max_s_);
+}
+
+
+double Road::s_dot(double v, double s, double d) const {
+  double dx_ds = s_x_spline_.deriv(1, s);
+  double dy_ds = s_y_spline_.deriv(1, s);
+  double ddx_ds = s_dx_spline_.deriv(1, s);
+  double ddy_ds = s_dy_spline_.deriv(1, s);
+  return v / std::sqrt( pow( dx_ds + d * ddx_ds, 2 ) + pow( dy_ds + d * ddy_ds, 2 ) );
 }

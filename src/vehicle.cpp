@@ -14,11 +14,13 @@ Vehicle::Vehicle(std::vector<double> telemetry_comp) {
   s_dot_ = telemetry_comp[5];
   d_dot_ = telemetry_comp[6];
 
-  // init acceleration to 0
+  // init acceleration and jerk to 0
   s_ddot_ = 0;
+  s_jerk_ = 0;
   d_ddot_ = 0;
 
-  speed_limit_ = COMMON_SPEED_LIMIT - COMMON_MAX_SPEED_DELTA;
+//  speed_limit_ = COMMON_SPEED_LIMIT - COMMON_MAX_SPEED_DELTA;
+  speed_limit_ = COMMON_SPEED_LIMIT;
 }
 
 
@@ -48,11 +50,17 @@ std::vector<double> Vehicle::state_at(double t) const {
 //    d_t_stop = -d_dot_ / d_ddot_;
 //  }
 //  double d_t_eval = std::min(t, d_t_stop);
-  state[3] = d_ + ( d_dot_ * t ) + ( d_ddot_ * pow(t, 2) / 2 );
-  state[4] = d_dot_ + d_ddot_ * t;
+//  state[3] = d_ + ( d_dot_ * t ) + ( d_ddot_ * pow(t, 2) / 2 );
+//  state[4] = d_dot_ + d_ddot_ * t;
 //  state[3] = d_ + ( d_dot_ * d_t_eval ) + ( d_ddot_ * pow(d_t_eval, 2) / 2 );
 //  state[4] = d_dot_ + d_ddot_ * d_t_eval;
-  state[5] = d_ddot_;
+//  state[5] = d_ddot_;
+
+  // assume constant d_dot
+  state[3] = d_ + ( d_dot_ * t );
+  state[4] = d_dot_;
+  state[5] = 0;
+
 
   return state;
 }

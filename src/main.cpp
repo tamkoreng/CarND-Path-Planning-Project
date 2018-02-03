@@ -157,7 +157,7 @@ int main() {
 //          predictor.host_.print();
 
 //          vector< vector<double> > next_points = traj_gen.keep_lane(predictor.desired_lane_, 4.0, prev_size);
-          vector< vector<double> > next_points = traj_gen.keep_lane(3.0, prev_size);
+          vector< vector<double> > next_points = traj_gen.keep_lane(3.0, prev_size); // WAS 3.0
           vector<double> next_x_vals = next_points[0];
           vector<double> next_y_vals = next_points[1];
 

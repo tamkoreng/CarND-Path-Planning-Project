@@ -224,7 +224,7 @@ int Predictor::behind(int lane, double t) const {
   auto it = targets_.begin();
   std::vector<int> ids;
 
-  // get vehicles behind of host in specified lane
+  // get vehicles behind host in specified lane
   while (it != targets_.end()) {
     int id = it->first;
     std::vector<double> target_at_t = it->second.state_at(t);
@@ -452,7 +452,8 @@ void Predictor::update_lane_selector(double t_horizon, bool abort_lane_change) {
     }
     double time_in_lane = interval(t_keep_lane_, now());
     bool can_change = (time_in_lane >= LANE_SELECTOR_HYSTERESIS) & lane_change_complete_;
-    host_.speed_limit_ = COMMON_SPEED_LIMIT - COMMON_MAX_SPEED_DELTA;
+//    host_.speed_limit_ = COMMON_SPEED_LIMIT - COMMON_MAX_SPEED_DELTA;
+    host_.speed_limit_ = COMMON_SPEED_LIMIT;
     std::cout << "KL: current = " << current_lane << ", optimal = " << optimal_lane << ", delta_s_front = " << delta_s_front <<  ", time_in_lane = " << time_in_lane << std::endl;
     if ( (optimal_lane < current_lane) & can_change ) {
       int proposed_lane = current_lane - 1;
@@ -477,7 +478,7 @@ void Predictor::update_lane_selector(double t_horizon, bool abort_lane_change) {
 //                     (delta_s_front >= LANE_SELECTOR_BUFFER) &
 //                     (delta_s_rear >= LANE_SELECTOR_BUFFER);
 
-      bool is_safe_start = is_safe(proposed_lane, 0);
+      bool is_safe_start = is_safe(proposed_lane, 0) & (rear_ttc(proposed_lane) >= LANE_SELECTOR_MIN_REAR_TTC);
       bool is_safe_end = is_safe(proposed_lane, t_horizon);
 
       if (is_safe_start & is_safe_end) {
@@ -514,7 +515,7 @@ void Predictor::update_lane_selector(double t_horizon, bool abort_lane_change) {
 //                     (delta_s_front >= LANE_SELECTOR_BUFFER) &
 //                     (delta_s_rear >= LANE_SELECTOR_BUFFER);
 
-      bool is_safe_start = is_safe(proposed_lane, 0);
+      bool is_safe_start = is_safe(proposed_lane, 0) & (rear_ttc(proposed_lane) >= LANE_SELECTOR_MIN_REAR_TTC);
       bool is_safe_end = is_safe(proposed_lane, t_horizon);
 
       if (is_safe_start & is_safe_end) {
@@ -537,7 +538,7 @@ void Predictor::update_lane_selector(double t_horizon, bool abort_lane_change) {
     } else {
       if (abort_lane_change) {
         int proposed_lane = desired_lane_ + 1;
-        bool is_safe_start = is_safe(proposed_lane, 0);
+        bool is_safe_start = is_safe(proposed_lane, 0) & (rear_ttc(proposed_lane) >= LANE_SELECTOR_MIN_REAR_TTC);
         bool is_safe_end = is_safe(proposed_lane, t_horizon);
         if (is_safe_start & is_safe_end) {
           next_state = "KL";
@@ -554,7 +555,7 @@ void Predictor::update_lane_selector(double t_horizon, bool abort_lane_change) {
     } else {
       if (abort_lane_change) {
         int proposed_lane = desired_lane_ - 1;
-        bool is_safe_start = is_safe(proposed_lane, 0);
+        bool is_safe_start = is_safe(proposed_lane, 0) & (rear_ttc(proposed_lane) >= LANE_SELECTOR_MIN_REAR_TTC);
         bool is_safe_end = is_safe(proposed_lane, t_horizon);
         if (is_safe_start & is_safe_end) {
           next_state = "KL";
@@ -567,7 +568,7 @@ void Predictor::update_lane_selector(double t_horizon, bool abort_lane_change) {
     int proposed_lane = current_lane - 1;
     double max_speed = std::min( lane_speed(proposed_lane, 0), lane_speed(proposed_lane, t_horizon) );
     double desired_speed = std::max( max_speed - LANE_SELECTOR_SPEED_OFFSET, 0.0 );
-    bool safe = is_safe(proposed_lane, 0) & is_safe(proposed_lane, t_horizon);
+    bool safe = is_safe(proposed_lane, 0) & is_safe(proposed_lane, t_horizon) & (rear_ttc(proposed_lane) >= LANE_SELECTOR_MIN_REAR_TTC);
     std::cout << "PLCL: current = " << current_lane << ", optimal = " << optimal_lane << ", delta_s_front = " << delta_s_front << ", desired_speed = " << desired_speed << std::endl;
     if (optimal_lane < (current_lane - 1)) {
       if ( (host_.s_dot_ < max_speed) & safe ) {
@@ -577,7 +578,8 @@ void Predictor::update_lane_selector(double t_horizon, bool abort_lane_change) {
 //        std::cout << "Change left to " << desired_lane_ << std::endl;
       } else {
         next_state = "PLCL";
-        host_.speed_limit_ = std::min( desired_speed, COMMON_SPEED_LIMIT - COMMON_MAX_SPEED_DELTA );
+        host_.speed_limit_ = std::min( desired_speed, COMMON_SPEED_LIMIT );
+//        host_.speed_limit_ = std::min( desired_speed, COMMON_SPEED_LIMIT - COMMON_MAX_SPEED_DELTA );
 //        std::cout << "PLCL - reducing speed to " << max_speed << std::endl;
       }
     } else {
@@ -587,7 +589,7 @@ void Predictor::update_lane_selector(double t_horizon, bool abort_lane_change) {
     int proposed_lane = current_lane + 1;
     double max_speed = std::min( lane_speed(proposed_lane, 0), lane_speed(proposed_lane, t_horizon) );
     double desired_speed = std::max( max_speed - LANE_SELECTOR_SPEED_OFFSET, 0.0 );
-    bool safe = is_safe(proposed_lane, 0) & is_safe(proposed_lane, t_horizon);
+    bool safe = is_safe(proposed_lane, 0) & is_safe(proposed_lane, t_horizon) & (rear_ttc(proposed_lane) >= LANE_SELECTOR_MIN_REAR_TTC);
     std::cout << "PLCR: current = " << current_lane << ", optimal = " << optimal_lane << ", delta_s_front = " << delta_s_front << ", desired_speed = " << desired_speed << std::endl;
     if (optimal_lane > (current_lane + 1)) {
       if ( (host_.s_dot_ < max_speed) & safe ) {
@@ -597,7 +599,8 @@ void Predictor::update_lane_selector(double t_horizon, bool abort_lane_change) {
 //        std::cout << "Change right to " << desired_lane_ << std::endl;
       } else {
         next_state = "PLCR";
-        host_.speed_limit_ = std::min( desired_speed, COMMON_SPEED_LIMIT - COMMON_MAX_SPEED_DELTA );
+        host_.speed_limit_ = std::min( desired_speed, COMMON_SPEED_LIMIT );
+//        host_.speed_limit_ = std::min( desired_speed, COMMON_SPEED_LIMIT - COMMON_MAX_SPEED_DELTA );
       }
     } else {
       next_state = "KL";
@@ -614,6 +617,7 @@ std::vector< Eigen::MatrixXd > Predictor::target_predictions(double T, int steps
 
   Eigen::VectorXd t;
   t.setLinSpaced(steps, 0.0, T);
+  double dt = T / steps;
 
   Eigen::VectorXd ones;
   ones.setOnes(steps);
@@ -643,8 +647,36 @@ std::vector< Eigen::MatrixXd > Predictor::target_predictions(double T, int steps
   }
 
   Eigen::VectorXd t_squared = t.array().pow(2);
+//  Eigen::MatrixXd S_dot = ( ones * s_dot ) + ( t * s_ddot );
+//  Eigen::MatrixXd zeros;
+//  zeros.setZero(steps, n_tgt);
+//  auto negative_S_dot = S_dot.array() < 0;
+//  Eigen::MatrixXd S_dot_filtered = negative_S_dot.select(zeros, S_dot);
+//  Eigen::RowVectorXd ones_row;
+//  ones_row.setOnes(n_tgt);
+//  Eigen::MatrixXd t_mat = t * ones_row;
+//  Eigen::MatrixXd delta_S = t_mat.array() * S_dot_filtered.array();
+//  S = ( ones * s ) + delta_S;
   S = ( ones * s ) + ( t * s_dot ) + ( 0.5 * t_squared * s_ddot );
-  D = ( ones * d ) + ( t * d_dot ) + ( 0.5 * t_squared * d_ddot );
+
+  // ensure S < max_s
+  auto loop_back = S.array() > COMMON_MAX_S;
+  Eigen::MatrixXd S_filtered = loop_back.select( S.array() - COMMON_MAX_S, S );
+
+  // ensure s_dot > 0
+  Eigen::RowVectorXd s_max = S_filtered.colwise().maxCoeff();
+//  auto negative_s_dot = S_filtered.array().colwise() < s_max.array();
+  Eigen::MatrixXd S_max = ones * s_max;
+  auto negative_s_dot = S_filtered.array() < S_max.array();
+  Eigen::MatrixXd S_valid = negative_s_dot.select( S_filtered, S_max );
+
+//  D = ( ones * d ) + ( t * d_dot ) + ( 0.5 * t_squared * d_ddot );
+  D = ( ones * d ) + ( t * d_dot ); // ignoring d_ddot
+
+//  std::cout << "S_tgt = " << std::endl;
+//  std::cout << S << std::endl;
+//  std::cout << "D_tgt = " << std::endl;
+//  std::cout << D << std::endl;
 
   return {S, D};
 }

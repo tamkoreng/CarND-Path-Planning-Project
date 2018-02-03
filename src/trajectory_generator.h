@@ -123,6 +123,10 @@ class TrajectoryGenerator {
   * Return perturbed version of goal end state.
   */
   std::vector<double> perturb_goal(std::vector<double> end_state, double sigma_multiplier);
+
+  // last element is T
+  std::vector<double> perturb_goal(std::vector<double> start_state, std::vector<double> end_state, double T, double sigma_multiplier);
+
   double perturb_t(double T);
 };
 
