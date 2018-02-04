@@ -184,7 +184,8 @@ vector<double> Trajectory::nearest_approach_to_any_vehicle(VectorXd s_host, Vect
                                                            MatrixXd S_tgt, MatrixXd D_tgt, int T_idx) const {
   // FIXME - must exclude trailing targets
 
-  int T_idx_half = floor(T_idx / 2);
+//  int T_idx_half = floor(T_idx / 2);
+  int T_idx_half = T_idx;
   MatrixXd delta_S = S_tgt.topRows(T_idx_half + 1) - s_host.head(T_idx_half + 1) * MatrixXd::Ones(1, S_tgt.cols());
   auto loop_back = delta_S.array() < (-COMMON_MAX_S / 2);
   MatrixXd delta_S_loop_back = loop_back.select( delta_S.array() + COMMON_MAX_S, delta_S );
