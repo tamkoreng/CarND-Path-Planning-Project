@@ -15,9 +15,6 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 
-//Trajectory::Trajectory() : start_state_(), end_state_(), T_() {}
-
-
 Trajectory::Trajectory(state start_state, state end_state, double T) {
   start_state_ = start_state;
   end_state_ = end_state;
@@ -58,23 +55,17 @@ double Trajectory::calculate_cost(MatrixXd S_tgt, MatrixXd D_tgt, state goal, do
   accel_ = accel_sq.array().sqrt();
   jerk_ = jerk_sq.array().sqrt();
 
-//  cout << "speed_ = ";
-//  for (int i = 0; i <= (T_idx_ + 1); i++) {
-//    cout << speed_(i) << ", ";
-//  }
-//  cout << endl;
-
   max_speed_ = speed_.head(T_idx_).maxCoeff();
   max_accel_ = accel_.head(T_idx_).maxCoeff();
   max_jerk_ = jerk_.head(T_idx_).maxCoeff();
   min_s_dot_ = s_dot_.head(T_idx_).minCoeff();
 
-  vector<double> nearest_distances = Trajectory::nearest_approach_to_any_vehicle(s_, d_, S_tgt, D_tgt, T_idx_);
+  vector<double> nearest_distances = Trajectory::nearest_approach_to_any_vehicle(
+      s_, d_, S_tgt, D_tgt, T_idx_);
   nearest_distance_ = nearest_distances[0];
   nearest_s_ = nearest_distances[1];
   nearest_d_ = nearest_distances[2];
 
-//  collision_cost_ = collision_cost(nearest_distance_);
   collision_cost_ = collision_cost(nearest_s_, nearest_d_);
   s_buffer_cost_ = s_buffer_cost(nearest_s_);
   d_buffer_cost_ = d_buffer_cost(nearest_d_);
@@ -91,34 +82,34 @@ double Trajectory::calculate_cost(MatrixXd S_tgt, MatrixXd D_tgt, state goal, do
   lateral_offset_cost_ = lateral_offset_cost(d_, T_idx_);
   backwards_cost_ = backwards_cost();
 
-  double cost = ( TRAJECTORY_COLLISION_WEIGHT           * collision_cost_           ) +
-                ( TRAJECTORY_BUFFER_WEIGHT              * s_buffer_cost_            ) +
-                ( TRAJECTORY_BUFFER_WEIGHT              * d_buffer_cost_            ) +
-                ( TRAJECTORY_TIME_DIFF_WEIGHT           * time_diff_cost_           ) +
-                ( TRAJECTORY_S_DIFF_WEIGHT              * s_diff_cost_              ) +
-                ( TRAJECTORY_D_DIFF_WEIGHT              * d_diff_cost_              ) +
-                ( TRAJECTORY_MAX_ACCEL_WEIGHT           * max_accel_cost_           ) +
-                ( TRAJECTORY_TOTAL_ACCEL_WEIGHT         * total_accel_cost_         ) +
-                ( TRAJECTORY_MAX_JERK_WEIGHT            * max_jerk_cost_            ) +
-                ( TRAJECTORY_TOTAL_JERK_WEIGHT          * total_jerk_cost_          ) +
-                ( TRAJECTORY_EFFICIENCY_WEIGHT          * efficiency_cost_          ) +
-                ( TRAJECTORY_STAYS_ON_ROAD_WEIGHT       * stays_on_road_cost_       ) +
-                ( TRAJECTORY_EXCEEDS_SPEED_LIMIT_WEIGHT * exceeds_speed_limit_cost_ ) +
-                ( TRAJECTORY_LATERAL_OFFSET_COST        * lateral_offset_cost_      ) +
-                ( 1e9                                   * backwards_cost_           );
+  double cost =
+      ( TRAJECTORY_COLLISION_WEIGHT           * collision_cost_           ) +
+      ( TRAJECTORY_BUFFER_WEIGHT              * s_buffer_cost_            ) +
+      ( TRAJECTORY_BUFFER_WEIGHT              * d_buffer_cost_            ) +
+      ( TRAJECTORY_TIME_DIFF_WEIGHT           * time_diff_cost_           ) +
+      ( TRAJECTORY_S_DIFF_WEIGHT              * s_diff_cost_              ) +
+      ( TRAJECTORY_D_DIFF_WEIGHT              * d_diff_cost_              ) +
+      ( TRAJECTORY_MAX_ACCEL_WEIGHT           * max_accel_cost_           ) +
+      ( TRAJECTORY_TOTAL_ACCEL_WEIGHT         * total_accel_cost_         ) +
+      ( TRAJECTORY_MAX_JERK_WEIGHT            * max_jerk_cost_            ) +
+      ( TRAJECTORY_TOTAL_JERK_WEIGHT          * total_jerk_cost_          ) +
+      ( TRAJECTORY_EFFICIENCY_WEIGHT          * efficiency_cost_          ) +
+      ( TRAJECTORY_STAYS_ON_ROAD_WEIGHT       * stays_on_road_cost_       ) +
+      ( TRAJECTORY_EXCEEDS_SPEED_LIMIT_WEIGHT * exceeds_speed_limit_cost_ ) +
+      ( TRAJECTORY_LATERAL_OFFSET_COST        * lateral_offset_cost_      ) +
+      ( TRAJECTORY_BACKWARDS_COST             * backwards_cost_           );
 
   weighted_cost_ = cost;
-
-//  cout << "speed_.size(), T_idx_, max_speed_, s_min, d_min, cost = " << speed_.size() << ", " << T_idx_ << ", " << max_speed_ << ", "
-//       << nearest_s_ << ", " << nearest_d_ << ", " << cost << endl;
 
   return cost;
 }
 
 
 void Trajectory::eval() {
-  vector<double> s_start = {start_state_.s, start_state_.s_dot, start_state_.s_ddot};
-  vector<double> d_start = {start_state_.d, start_state_.d_dot, start_state_.d_ddot};
+  vector<double> s_start = {start_state_.s, start_state_.s_dot,
+                            start_state_.s_ddot};
+  vector<double> d_start = {start_state_.d, start_state_.d_dot,
+                            start_state_.d_ddot};
   vector<double> s_end = {end_state_.s, end_state_.s_dot, end_state_.s_ddot};
   vector<double> d_end = {end_state_.d, end_state_.d_dot, end_state_.d_ddot};
 
@@ -147,14 +138,11 @@ void Trajectory::eval() {
   auto s_filtered = loop_back.select(s_.array() - COMMON_MAX_S, s_);
   s_ = s_filtered;
 
-//  std::cout << "s_ = " << std::endl;
-//  std::cout << s_ << std::endl;
-//  std::cout << "d_ = " << std::endl;
-//  std::cout << d_ << std::endl;
 }
 
 
-VectorXd Trajectory::JMT(vector<double> start, vector<double> end, double T) const{
+VectorXd Trajectory::JMT(vector<double> start, vector<double> end,
+                         double T) const{
   double a_0 = start[0];
   double a_1 = start[1];
   double a_2 = start[2] / 2;
@@ -180,49 +168,45 @@ VectorXd Trajectory::JMT(vector<double> start, vector<double> end, double T) con
 }
 
 
-vector<double> Trajectory::nearest_approach_to_any_vehicle(VectorXd s_host, VectorXd d_host,
-                                                           MatrixXd S_tgt, MatrixXd D_tgt, int T_idx) const {
-  // FIXME - must exclude trailing targets
-
-//  int T_idx_half = floor(T_idx / 2);
-  int T_idx_half = T_idx;
-  MatrixXd delta_S = S_tgt.topRows(T_idx_half + 1) - s_host.head(T_idx_half + 1) * MatrixXd::Ones(1, S_tgt.cols());
+vector<double> Trajectory::nearest_approach_to_any_vehicle(VectorXd s_host,
+                                                           VectorXd d_host,
+                                                           MatrixXd S_tgt,
+                                                           MatrixXd D_tgt,
+                                                           int T_idx) const {
+  MatrixXd delta_S = S_tgt.topRows(T_idx + 1) -
+                     s_host.head(T_idx + 1) * MatrixXd::Ones(1, S_tgt.cols());
   auto loop_back = delta_S.array() < (-COMMON_MAX_S / 2);
-  MatrixXd delta_S_loop_back = loop_back.select( delta_S.array() + COMMON_MAX_S, delta_S );
+  MatrixXd delta_S_loop_back = loop_back.select( delta_S.array() + COMMON_MAX_S,
+                                                 delta_S );
   auto trailing = delta_S_loop_back.array() < 0;
-  MatrixXd big = COMMON_INF_DIST * MatrixXd::Ones(delta_S.rows(), delta_S.cols());
+  MatrixXd big = COMMON_INF_DIST *
+                 MatrixXd::Ones(delta_S.rows(), delta_S.cols());
   MatrixXd delta_S_leading = trailing.select(big, delta_S_loop_back);
 
-  MatrixXd delta_D = D_tgt.topRows(T_idx_half + 1) - d_host.head(T_idx_half + 1) * MatrixXd::Ones(1, S_tgt.cols());
+  MatrixXd delta_D = D_tgt.topRows(T_idx + 1) -
+                     d_host.head(T_idx + 1) * MatrixXd::Ones(1, S_tgt.cols());
   MatrixXd dist_sq = delta_S_leading.array().pow(2) + delta_D.array().pow(2);
-//  MatrixXd dist_sq = delta_S.array().pow(2) + delta_D.array().pow(2);
   double min_dist_sq = dist_sq.minCoeff();
   double nearest_dist = sqrt(min_dist_sq);
 
   // nearest longitudinal distance (in host path, front or rear)
   auto in_path = delta_D.array().abs() < COMMON_IN_PATH_D_DIST;
-  double nearest_longitudinal = in_path.select(delta_S_leading.array().abs(), big).minCoeff();
-//  double nearest_longitudinal = in_path.select(delta_S.array().abs(), big).minCoeff();
+  double nearest_longitudinal = in_path.select(delta_S_leading.array().abs(),
+                                               big).minCoeff();
 
   // nearest lateral distance (near host s position)
   auto adjacent = delta_S_leading.array().abs() < COMMON_ADJACENT_S_DIST;
-//  auto adjacent = delta_S.array().abs() < COMMON_ADJACENT_S_DIST;
-  double nearest_lateral = adjacent.select(delta_D.array().abs(), big).minCoeff();
+  double nearest_lateral = adjacent.select(delta_D.array().abs(),
+                                           big).minCoeff();
 
   return {nearest_dist, nearest_longitudinal, nearest_lateral};
 }
 
 
-//double Trajectory::collision_cost(double nearest_dist) const {
-//  double cost = 0;
-//  if (nearest_dist < (2 * TRAJECTORY_VEHICLE_RADIUS)) {
-//    cost = 1;
-//  }
-//  return cost;
-//}
-double Trajectory::collision_cost(double nearest_longitudinal, double nearest_lateral) const {
+double Trajectory::collision_cost(double nearest_longitudinal,
+                                  double nearest_lateral) const {
   double cost = 0;
-  if ( (nearest_longitudinal < 4.5 ) | (nearest_lateral < 2.5) ) {
+  if ( (nearest_longitudinal < 4.5 ) || (nearest_lateral < 2.5) ) {
     cost = 1;
   }
   return cost;
@@ -232,9 +216,6 @@ double Trajectory::collision_cost(double nearest_longitudinal, double nearest_la
 double Trajectory::s_buffer_cost(double nearest_longitudinal) const {
   double cost = 0;
   double s_gap = max_speed_ * FOLLOWER_T_GAP + FOLLOWER_R0;
-//  if (nearest_longitudinal < TRAJECTORY_S_BUFFER) {
-//    cost = logistic( TRAJECTORY_S_BUFFER / nearest_longitudinal );
-//  }
   if (nearest_longitudinal < s_gap) {
     cost = logistic( s_gap / nearest_longitudinal );
   }
@@ -309,7 +290,8 @@ double Trajectory::max_accel_cost(VectorXd accel, int T_idx) const {
 }
 
 
-double Trajectory::total_accel_cost(VectorXd accel, int T_idx, double dt) const {
+double Trajectory::total_accel_cost(VectorXd accel, int T_idx,
+                                    double dt) const {
   double total_accel = accel.head(T_idx).sum() * dt;
   double accel_per_sec = total_accel / ( (T_idx) * dt );
   return logistic( accel_per_sec / TRAJECTORY_EXPECTED_ACCEL_IN_ONE_SEC );
@@ -351,7 +333,8 @@ double Trajectory::stays_on_road_cost(VectorXd d, int T_idx) const {
   double d_max = d.head(T_idx + 1).maxCoeff();
 
   double cost = 0;
-  if ( ( d_min < TRAJECTORY_LEFT_LIMIT ) | ( d_max > TRAJECTORY_RIGHT_LIMIT ) ) {
+  if ( ( d_min < TRAJECTORY_LEFT_LIMIT ) ||
+       ( d_max > TRAJECTORY_RIGHT_LIMIT ) ) {
     cost = 1;
   }
   return cost;
@@ -362,7 +345,7 @@ double Trajectory::exceeds_speed_limit_cost(VectorXd speed, int T_idx) const {
   double max_speed = speed.head(T_idx).maxCoeff();
 
   double cost = 0;
-  if (max_speed > (COMMON_SPEED_LIMIT + 1.5)) { // WAS COMMON_SPEED_LIMIT + 2, then 1.5
+  if (max_speed > (COMMON_SPEED_LIMIT + 1.5)) { // TODO - magic number
     cost = 1;
   }
   return cost;
@@ -372,7 +355,9 @@ double Trajectory::exceeds_speed_limit_cost(VectorXd speed, int T_idx) const {
 double Trajectory::lateral_offset_cost(VectorXd d, int T_idx) const {
   double w = COMMON_LANE_WIDTH;
   VectorXd d_over_w = d.head(T_idx).array() / w;
-  VectorXd offset = d.head(T_idx).array() - ( w * d_over_w.array().cast<int>().cast<double>() ) - (w / 2);
+  VectorXd offset = d.head(T_idx).array() -
+                    ( w * d_over_w.array().cast<int>().cast<double>() ) -
+                    (w / 2);
   double mean_abs_offset = offset.array().abs().mean();
   double cost = logistic( mean_abs_offset / 0.1 );
   return cost;

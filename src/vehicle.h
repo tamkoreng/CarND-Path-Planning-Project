@@ -15,7 +15,6 @@ class Vehicle {
   double s_;
   double s_dot_;
   double s_ddot_;
-  double s_jerk_;
   double d_;
   double d_dot_;
   double d_ddot_;
@@ -51,7 +50,8 @@ class Vehicle {
   */
   void update(std::vector<double> telemetry_comp, double dt);
 
-  void update_with_accel(std::vector<double> telemetry_comp, double s_ddot, double d_ddot);
+  void update_with_accel(std::vector<double> telemetry_comp, double s_ddot,
+                         double d_ddot);
 
   void print();
 };

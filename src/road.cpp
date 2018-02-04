@@ -8,8 +8,9 @@
 
 
 Road::Road(double speed_limit, double lane_width, int n_lanes, double max_s,
-           std::vector<double>maps_x, std::vector<double>maps_y, std::vector<double>maps_s,
-           std::vector<double>maps_dx, std::vector<double>maps_dy) {
+           std::vector<double>maps_x, std::vector<double>maps_y,
+           std::vector<double>maps_s, std::vector<double>maps_dx,
+           std::vector<double>maps_dy) {
   speed_limit_ = speed_limit;
   lane_width_ = lane_width;
   n_lanes_ = n_lanes;
@@ -73,8 +74,6 @@ int Road::next_waypoint(double x, double y, double theta) const {
     }
   }
 
-//  std::cout << "next_waypoint: closest_wp, map_x, map_y = " << closest_wp << ", " << map_x << ", " << map_y << std::endl;
-
   return closest_wp;
 }
 
@@ -135,11 +134,10 @@ std::vector<double> Road::get_xy(double s, double d) const {
 }
 
 
-std::vector<double> Road::get_frenet_velocity(double x, double y, double vx, double vy) const {
+std::vector<double> Road::get_frenet_velocity(double x, double y, double vx,
+                                              double vy) const {
   double theta_veh = safe_atan2(vy, vx);
-//  cout << "theta_veh = " << theta_veh << endl;
   int next_wp = Road::next_waypoint(x,y, theta_veh);
-//  cout << "next_wp = " << next_wp << endl;
 
   int prev_wp;
   prev_wp = next_wp - 1;
@@ -157,8 +155,6 @@ std::vector<double> Road::get_frenet_velocity(double x, double y, double vx, dou
   double v = sqrt(pow(vx, 2) + pow(vy, 2));
   double d_dot = v * sin(dtheta);
   double s_dot = sqrt(pow(v, 2) - pow(d_dot, 2));
-
-//  std::cout << "vx, vy, dtheta, s_dot, d_dot = " << vx << ", " << vy << ", " << dtheta << ", " << s_dot << ", " << d_dot << std::endl;
 
   return {s_dot, d_dot};
 }
@@ -200,5 +196,6 @@ double Road::s_dot(double v, double s, double d) const {
   double dy_ds = s_y_spline_.deriv(1, s);
   double ddx_ds = s_dx_spline_.deriv(1, s);
   double ddy_ds = s_dy_spline_.deriv(1, s);
-  return v / std::sqrt( pow( dx_ds + d * ddx_ds, 2 ) + pow( dy_ds + d * ddy_ds, 2 ) );
+  return v / std::sqrt( pow( dx_ds + d * ddx_ds, 2 ) +
+                        pow( dy_ds + d * ddy_ds, 2 ) );
 }

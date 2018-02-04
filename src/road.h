@@ -6,7 +6,8 @@
 #include "spline.h"
 
 
-// refactored waypoint and coordinate transformation functions from starter code main.cpp
+// Refactored waypoint and coordinate transformation functions from starter code
+// main.cpp
 
 
 class Road {
@@ -58,7 +59,8 @@ public:
   /**
   * Transform Cartesian vx, vy to Frenet s_dot, d_dot.
   */
-  std::vector<double> get_frenet_velocity(double x, double y, double vx, double vy) const;
+  std::vector<double> get_frenet_velocity(double x, double y, double vx,
+                                          double vy) const;
 
   /**
   * Get lane index from d coordinate.

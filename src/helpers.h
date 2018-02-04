@@ -21,7 +21,8 @@ inline double polyeval(Eigen::VectorXd coeffs, double x) {
 // Fit a polynomial.
 // Adapted from
 // https://github.com/JuliaMath/Polynomials.jl/blob/master/src/Polynomials.jl#L676-L716
-inline Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals, int order) {
+inline Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
+                               int order) {
   assert(xvals.size() == yvals.size());
   assert(order >= 1 && order <= xvals.size() - 1);
   Eigen::MatrixXd A(xvals.size(), order + 1);
@@ -73,8 +74,6 @@ inline double distance_2d(double x1, double y1, double x2, double y2) {
 
 
 // Functions below were moved from main.cpp in project starter code.
-
-// For converting back and forth between radians and degrees.
 constexpr double pi() {
   return M_PI;
 }
@@ -92,11 +91,11 @@ inline double safe_atan2(double y, double x) {
   double absy = abs(y);
 
   double result;
-  if ((absx >= epsilon) & (absy >= epsilon)) {
+  if ((absx >= epsilon) && (absy >= epsilon)) {
     result = std::atan2(y, x);
-  } else if ((absx < epsilon) & (absy >= epsilon)) {
+  } else if ((absx < epsilon) && (absy >= epsilon)) {
     result = (y / absy) *  pi()/2;
-  } else if ((absx >= epsilon) & (absy < epsilon)) {
+  } else if ((absx >= epsilon) && (absy < epsilon)) {
     result = 0;
   } else {
     result = 0;
