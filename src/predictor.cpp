@@ -645,16 +645,39 @@ std::vector< Eigen::MatrixXd > Predictor::target_predictions(double T,
   auto it = targets_.begin();
   std::vector<int> ids;
 
+  int in_path_id = in_path();
   while (it != targets_.end()) {
     int i = it->first;
     s(i) = it->second.s_;
     s_dot(i) = it->second.s_dot_;
-    s_ddot(i) = it->second.s_ddot_;
+    if (i == in_path_id) {
+      double gap = road_.s_diff(it->second.s_, host_.s_);
+      if ( gap < ( host_.s_dot_ * FOLLOWER_T_GAP + FOLLOWER_R0 ) ) {
+        s_ddot(i) = it->second.min_s_ddot_;
+      } else {
+        s_ddot(i) = it->second.s_ddot_;
+      }
+    } else {
+      s_ddot(i) = it->second.s_ddot_;
+    }
     d(i) = it->second.d_;
     d_dot(i) = it->second.d_dot_;
+    // prevent weaving adjacent targets from triggering collision predictions
+    if (abs(it->second.mean_d_dot_) < VEHICLE_MIN_MEAN_D_DOT) {
+      d_dot(i) = 0;
+    }
     d_ddot(i) = it->second.d_ddot_;
     ++it;
   }
+
+//  std::cout << "target id, s_dot, d_dot, mean_d_dot: " << std::endl;
+//  it = targets_.begin();
+//  while (it != targets_.end()) {
+//    std::cout << "  " << it->first << ", " << it->second.s_dot_ << ", "
+//              << it->second.d_dot_ << ", " << it->second.mean_d_dot_
+//              << std::endl;
+//    ++it;
+//  }
 
   Eigen::VectorXd t_squared = t.array().pow(2);
   S = ( ones * s ) + ( t * s_dot ) + ( 0.5 * t_squared * s_ddot );

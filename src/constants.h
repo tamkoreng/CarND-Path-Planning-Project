@@ -36,7 +36,7 @@ const double TRAJECTORY_LANE_CHANGE_JERK_OFFSET = 1.5; // m/s3
 
 
 // Trajectory Weights
-const double TRAJECTORY_COLLISION_WEIGHT = 1e10;
+const double TRAJECTORY_COLLISION_WEIGHT = 1.1e9;
 const double TRAJECTORY_BUFFER_WEIGHT = 3e6;
 const double TRAJECTORY_TIME_DIFF_WEIGHT = 100;
 const double TRAJECTORY_S_DIFF_WEIGHT = 100;
@@ -53,6 +53,7 @@ const double TRAJECTORY_BACKWARDS_COST = 1e6;
 
 // Trajectory Times
 const double TRAJECTORY_T_HORIZON = 3.0; // seconds
+const double TRAJECTORY_T_COLLISION_HORIZON = 2.0; // seconds
 const int TRAJECTORY_N_EVAL_TIME_STEPS = 40; // number of time steps at which to evaluate trajectory of host and targets
 const double TRAJECTORY_MAX_EVAL_TIME = 4.0; // for precomputed powers of t (in seconds)
 
@@ -87,20 +88,26 @@ const double FOLLOWER_R0 = 6; // longitudinal spacing (in m) for stationary lead
 
 // lane selection parameters
 const int LANE_SELECTOR_START_LANE = 1; // startup lane index
-const double LANE_SELECTOR_MIN_REAR_TTC = 3.0; // seconds
-const double LANE_SELECTOR_MAX_INLANE_OFFSET = 1; // max host lateral offset to centerline (in m) to be
-                                                  // considered "in lane" (lane change completed)
+const double LANE_SELECTOR_MIN_REAR_TTC = 5.0; // seconds
+const double LANE_SELECTOR_MAX_INLANE_OFFSET = 1.5; // max host lateral offset to centerline (in m) to be
+                                                   // considered "in lane" (lane change completed) WAS 1.0
 const double LANE_SELECTOR_TTC_SECOND_DEGREE_MIN_REL_ACCEL = 1; // min relative acceleration (in m/s2)
                                                                 // for calculating second degree TTC
 const double LANE_SELECTOR_TTC_MAX = 1e3; // seconds
 const double LANE_SELECTOR_LATERAL_T_HORIZON = 0; // time (in seconds) at which leading vehicle calculated
-const double LANE_SELECTOR_LONGITUDINAL_T_HORIZON = 8; // time (in seconds) at which host advance calculated
+const double LANE_SELECTOR_LONGITUDINAL_T_HORIZON = 5; // time (in seconds) at which host advance calculated WAS 8
 const double LANE_SELECTOR_MIN_PROGRESS_DELTA = 4.5; // an optimal lane must yield at least this much more
                                                      // longitudinal progress (in m) than the current lane
 const double LANE_SELECTOR_SPEED_OFFSET = 1; // reduce speed by this amount below adjacent lane vehicle (in m/s)
 const double LANE_SELECTOR_HYSTERESIS = 2; // seconds
-const double LANE_SELECTOR_OPTIMAL_LANE_FILTER_TIME = 0.5 ; // optimal lane must remain unchanged for this time (in seconds)
-                                                            // before passing to lane selector
-const double LANE_SELECTOR_BUFFER = 5 * TRAJECTORY_VEHICLE_RADIUS; // rear buffer distance (in m)
+const double LANE_SELECTOR_OPTIMAL_LANE_FILTER_TIME = 0.7 ; // optimal lane must remain unchanged for this time (in seconds)
+                                                            // before passing to lane selector WAS 0.5
+const double LANE_SELECTOR_BUFFER = 10; // rear buffer distance (in m)
+
+// vehicle parameters
+const int VEHICLE_N_POINTS = 30; // number of history points to save
+const double VEHICLE_T_D_DOT = 3.0; // time constant for computing mean d_dot
+const double VEHICLE_T_S_DDOT = 3.0; // time constant for computing min s_ddot
+const double VEHICLE_MIN_MEAN_D_DOT = 4; // if mean d_dot is below this value, set d_dot to 0 in prediction WAS 0.5
 
 #endif

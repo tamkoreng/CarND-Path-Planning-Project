@@ -101,11 +101,22 @@ trajectory TrajectoryGenerator::PTG(vector<double> start_state,
     // find minimum cost trajectory
     int min_idx = distance( costs.begin(),
                             min_element(costs.begin(), costs.end()) );
+    // scale trajectory to prevent over speed
+    max_speed = trajectories[min_idx].max_speed_;
+//    if (max_speed > COMMON_SPEED_LIMIT) {
+//      if (COMMON_DEBUG) {
+//        cout << "Rescaling trajectory, max_speed = "
+//             << max_speed << ", it = " << current_iteration << endl;
+//      }
+//      double scale = COMMON_SPEED_LIMIT / max_speed;
+//      trajectories[min_idx].s_coef_.tail(5) = scale *
+//                                              trajectories[min_idx].s_coef_.tail(5);
+//      costs[min_idx] -= trajectories[min_idx].exceeds_speed_limit_cost_;
+//    }
     traj_out = {trajectories[min_idx].s_coef_, trajectories[min_idx].d_coef_,
                 trajectories[min_idx].T_};
     will_collide = ( trajectories[min_idx].collision_cost_ > 1e-4 );
     current_cost = costs[min_idx];
-    max_speed = trajectories[min_idx].max_speed_;
 
     current_iteration++;
   }
@@ -485,7 +496,11 @@ vector< vector<double> > TrajectoryGenerator::keep_lane(double t_horizon,
     double s1_i = lead_now[0];
     double v1_i = lead_now[1];
     double a1_i = lead_now[2];
-    vector<double> lead_end = predictor_.targets_.at(in_front_id).state_at(t_horizon);
+//    vector<double> lead_end = predictor_.targets_.at(in_front_id).state_at(t_horizon);
+//    s1_f = lead_end[0];
+//    v1_f = lead_end[1];
+//    a1_f = lead_end[2];
+    vector<double> lead_end = predictor_.targets_.at(in_front_id).min_s_ddot_state_at(t_horizon);
     s1_f = lead_end[0];
     v1_f = lead_end[1];
     a1_f = lead_end[2];
@@ -503,16 +518,18 @@ vector< vector<double> > TrajectoryGenerator::keep_lane(double t_horizon,
         ah_f = 0;
       } else {
         t_goal = 3;
-        vector<double> lead_end = predictor_.targets_.at(in_front_id).state_at(t_goal);
+        vector<double> lead_end = predictor_.targets_.at(in_front_id).min_s_ddot_state_at(t_goal);
         s1_f = lead_end[0];
         v1_f = lead_end[1];
         a1_f = lead_end[2];
         vh_f = min(v1_f, vh_f);
-        vector<double> host_end = trapezoidal_accel(t_goal, vh_f, a_max,
-                                                    jerk_max);
-        double sh_f = host_end[0];
-        double vh_f = host_end[1];
-        double ah_f = host_end[2];
+//        host_end = trapezoidal_accel(t_goal, vh_f, a_max, jerk_max);
+//        sh_f = host_end[0];
+//        vh_f = host_end[1];
+//        ah_f = host_end[2];
+        vh_f = v1_f;
+        ah_f = 0;
+        sh_f = road_.s_norm(s1_f - (FOLLOWER_T_GAP * vh_f + FOLLOWER_R0));
       }
     }
   }

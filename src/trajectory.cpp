@@ -48,6 +48,12 @@ double Trajectory::calculate_cost(MatrixXd S_tgt, MatrixXd D_tgt, state goal, do
   }
   T_idx_ = idx;
 
+  idx = TRAJECTORY_N_EVAL_TIME_STEPS - 1;
+  while (TRAJECTORY_TIMES(idx, 1) > T_) {
+    idx--;
+  }
+  int T_idx_collision = idx;
+
   VectorXd speed_sq = s_dot_.array().pow(2) + d_dot_.array().pow(2);
   VectorXd accel_sq = s_ddot_.array().pow(2) + d_ddot_.array().pow(2);
   VectorXd jerk_sq = s_jerk_.array().pow(2) + d_jerk_.array().pow(2);
@@ -61,7 +67,7 @@ double Trajectory::calculate_cost(MatrixXd S_tgt, MatrixXd D_tgt, state goal, do
   min_s_dot_ = s_dot_.head(T_idx_).minCoeff();
 
   vector<double> nearest_distances = Trajectory::nearest_approach_to_any_vehicle(
-      s_, d_, S_tgt, D_tgt, T_idx_);
+      s_, d_, S_tgt, D_tgt, T_idx_collision);
   nearest_distance_ = nearest_distances[0];
   nearest_s_ = nearest_distances[1];
   nearest_d_ = nearest_distances[2];
@@ -345,7 +351,7 @@ double Trajectory::exceeds_speed_limit_cost(VectorXd speed, int T_idx) const {
   double max_speed = speed.head(T_idx).maxCoeff();
 
   double cost = 0;
-  if (max_speed > (COMMON_SPEED_LIMIT + 1.5)) { // TODO - magic number
+  if (max_speed > (COMMON_SPEED_LIMIT + 1.0)) { // TODO - magic number WAS 1.5
     cost = 1;
   }
   return cost;
