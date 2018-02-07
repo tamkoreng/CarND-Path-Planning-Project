@@ -7,8 +7,8 @@
 
 
 // Common
-const double COMMON_MAX_JERK = 10; // m/s3
-const double COMMON_MAX_ACCEL = 10; // m/s2
+const double COMMON_MAX_JERK = 9; // m/s3
+const double COMMON_MAX_ACCEL = 9; // m/s2
 const double COMMON_SPEED_LIMIT = 47 / 2.237; // m/s WAS 50
 const double COMMON_MAX_JERK_DELTA = 2; // m/s3
 const double COMMON_MAX_ACCEL_DELTA = 2; // m/s2
